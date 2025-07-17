@@ -1,83 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Image } from 'react-native';
-import { ShoppingCart, Star, Heart } from 'lucide-react-native';
-
-const products = [
-  {
-    id: 1,
-    name: 'Organic Turmeric Powder',
-    description: 'Premium quality organic turmeric powder with high curcumin content',
-    price: 24.99,
-    originalPrice: 29.99,
-    rating: 4.8,
-    reviews: 156,
-    image: 'https://images.pexels.com/photos/4198015/pexels-photo-4198015.jpeg?auto=compress&cs=tinysrgb&w=400',
-    category: 'Herbs & Spices',
-    inStock: true,
-  },
-  {
-    id: 2,
-    name: 'Ashwagandha Capsules',
-    description: 'Natural stress relief and energy support supplement',
-    price: 39.99,
-    originalPrice: null,
-    rating: 4.9,
-    reviews: 203,
-    image: 'https://images.pexels.com/photos/3683074/pexels-photo-3683074.jpeg?auto=compress&cs=tinysrgb&w=400',
-    category: 'Supplements',
-    inStock: true,
-  },
-  {
-    id: 3,
-    name: 'Herbal Tea Blend',
-    description: 'Calming blend of chamomile, lavender, and holy basil',
-    price: 18.99,
-    originalPrice: 22.99,
-    rating: 4.7,
-    reviews: 89,
-    image: 'https://images.pexels.com/photos/1417945/pexels-photo-1417945.jpeg?auto=compress&cs=tinysrgb&w=400',
-    category: 'Teas',
-    inStock: true,
-  },
-  {
-    id: 4,
-    name: 'Neem Oil',
-    description: 'Pure cold-pressed neem oil for skin and hair care',
-    price: 16.99,
-    originalPrice: null,
-    rating: 4.6,
-    reviews: 124,
-    image: 'https://images.pexels.com/photos/4041392/pexels-photo-4041392.jpeg?auto=compress&cs=tinysrgb&w=400',
-    category: 'Oils',
-    inStock: false,
-  },
-  {
-    id: 5,
-    name: 'Triphala Powder',
-    description: 'Traditional Ayurvedic digestive support formula',
-    price: 21.99,
-    originalPrice: 26.99,
-    rating: 4.8,
-    reviews: 167,
-    image: 'https://images.pexels.com/photos/4198015/pexels-photo-4198015.jpeg?auto=compress&cs=tinysrgb&w=400',
-    category: 'Herbs & Spices',
-    inStock: true,
-  },
-  {
-    id: 6,
-    name: 'Meditation Cushion',
-    description: 'Comfortable organic cotton meditation cushion',
-    price: 45.99,
-    originalPrice: null,
-    rating: 4.9,
-    reviews: 78,
-    image: 'https://images.pexels.com/photos/3822622/pexels-photo-3822622.jpeg?auto=compress&cs=tinysrgb&w=400',
-    category: 'Accessories',
-    inStock: true,
-  },
-];
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
+import { ShoppingCart, Star, Heart, RefreshCw } from 'lucide-react-native';
+import { useProducts } from '../../hooks/useProducts';
 
 export default function ProductsScreen() {
+  const { products, loading, error, refetch } = useProducts({ limit: 20 });
   const [favorites, setFavorites] = useState(new Set());
   const [cart, setCart] = useState(new Set());
 
@@ -97,79 +24,124 @@ export default function ProductsScreen() {
     setCart(newCart);
   };
 
+  const handleRefresh = () => {
+    refetch();
+  };
+
+  const showError = () => {
+    Alert.alert(
+      'Connection Error',
+      error || 'Unable to load products. Please check your connection and try again.',
+      [
+        { text: 'Retry', onPress: handleRefresh },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>Wellness Products</Text>
-          <Text style={styles.subtitle}>Natural remedies and wellness essentials</Text>
+          <View style={styles.headerContent}>
+            <View style={styles.headerText}>
+              <Text style={styles.title}>Wellness Products</Text>
+              <Text style={styles.subtitle}>Natural remedies and wellness essentials</Text>
+            </View>
+            {error && (
+              <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
+                <RefreshCw size={20} color="#FF8C42" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <View style={styles.productsGrid}>
-          {products.map((product) => (
-            <View key={product.id} style={styles.productCard}>
-              <View style={styles.imageContainer}>
-                <Image source={{ uri: product.image }} style={styles.productImage} />
-                <TouchableOpacity 
-                  style={styles.favoriteButton}
-                  onPress={() => toggleFavorite(product.id)}
-                >
-                  <Heart 
-                    size={20} 
-                    color={favorites.has(product.id) ? "#FF8C42" : "#6B7280"} 
-                    fill={favorites.has(product.id) ? "#FF8C42" : "none"}
-                  />
-                </TouchableOpacity>
-                {!product.inStock && (
-                  <View style={styles.outOfStockBadge}>
-                    <Text style={styles.outOfStockText}>Out of Stock</Text>
-                  </View>
-                )}
-              </View>
-              
-              <View style={styles.productInfo}>
-                <Text style={styles.category}>{product.category}</Text>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={styles.productDescription}>{product.description}</Text>
-                
-                <View style={styles.ratingContainer}>
-                  <Star size={14} color="#FFD700" fill="#FFD700" />
-                  <Text style={styles.rating}>{product.rating}</Text>
-                  <Text style={styles.reviews}>({product.reviews})</Text>
-                </View>
-                
-                <View style={styles.priceContainer}>
-                  <Text style={styles.price}>${product.price}</Text>
-                  {product.originalPrice && (
-                    <Text style={styles.originalPrice}>${product.originalPrice}</Text>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#FF8C42" />
+              <Text style={styles.loadingText}>Loading products...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Unable to load products</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={showError}>
+                <Text style={styles.retryButtonText}>Tap to retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : products.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No products available</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+                <Text style={styles.retryButtonText}>Refresh</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            products.map((product) => (
+              <View key={product.id} style={styles.productCard}>
+                <View style={styles.imageContainer}>
+                  <Image source={{ uri: product.image }} style={styles.productImage} />
+                  <TouchableOpacity 
+                    style={styles.favoriteButton}
+                    onPress={() => toggleFavorite(product.id)}
+                  >
+                    <Heart 
+                      size={20} 
+                      color={favorites.has(product.id) ? "#FF8C42" : "#6B7280"} 
+                      fill={favorites.has(product.id) ? "#FF8C42" : "none"}
+                    />
+                  </TouchableOpacity>
+                  {!product.inStock && (
+                    <View style={styles.outOfStockBadge}>
+                      <Text style={styles.outOfStockText}>Out of Stock</Text>
+                    </View>
                   )}
                 </View>
                 
-                <TouchableOpacity 
-                  style={[
-                    styles.addToCartButton,
-                    !product.inStock && styles.disabledButton,
-                    cart.has(product.id) && styles.addedToCartButton
-                  ]}
-                  onPress={() => addToCart(product.id)}
-                  disabled={!product.inStock || cart.has(product.id)}
-                >
-                  <ShoppingCart size={16} color={
-                    !product.inStock ? "#9CA3AF" : 
-                    cart.has(product.id) ? "#87A96B" : "#FFFFFF"
-                  } />
-                  <Text style={[
-                    styles.addToCartText,
-                    !product.inStock && styles.disabledButtonText,
-                    cart.has(product.id) && styles.addedToCartText
-                  ]}>
-                    {!product.inStock ? 'Out of Stock' : 
-                     cart.has(product.id) ? 'Added to Cart' : 'Add to Cart'}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.productInfo}>
+                  <Text style={styles.category}>{product.category}</Text>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <Text style={styles.productDescription}>{product.description}</Text>
+                  
+                  <View style={styles.ratingContainer}>
+                    <Star size={14} color="#FFD700" fill="#FFD700" />
+                    <Text style={styles.rating}>{product.rating}</Text>
+                    <Text style={styles.reviews}>({product.reviews})</Text>
+                  </View>
+                  
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.price}>${product.price}</Text>
+                    {product.originalPrice && (
+                      <Text style={styles.originalPrice}>${product.originalPrice}</Text>
+                    )}
+                  </View>
+                  
+                  <TouchableOpacity 
+                    style={[
+                      styles.addToCartButton,
+                      !product.inStock && styles.disabledButton,
+                      cart.has(product.id) && styles.addedToCartButton
+                    ]}
+                    onPress={() => addToCart(product.id)}
+                    disabled={!product.inStock || cart.has(product.id)}
+                  >
+                    <ShoppingCart size={16} color={
+                      !product.inStock ? "#9CA3AF" : 
+                      cart.has(product.id) ? "#87A96B" : "#FFFFFF"
+                    } />
+                    <Text style={[
+                      styles.addToCartText,
+                      !product.inStock && styles.disabledButtonText,
+                      cart.has(product.id) && styles.addedToCartText
+                    ]}>
+                      {!product.inStock ? 'Out of Stock' : 
+                       cart.has(product.id) ? 'Added to Cart' : 'Add to Cart'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -341,5 +313,63 @@ const styles = StyleSheet.create({
   },
   addedToCartText: {
     color: '#87A96B',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerText: {
+    flex: 1,
+  },
+  refreshButton: {
+    padding: 8,
+    marginTop: 4,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#EF4444',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#FF8C42',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

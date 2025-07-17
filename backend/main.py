@@ -4,8 +4,8 @@ from typing import Optional, List
 import os
 from dotenv import load_dotenv
 
-from models import Practitioner, PractitionerResponse
-from database import PractitionerDatabase
+from models import Practitioner, PractitionerResponse, Product, ProductResponse, ProductCategory
+from database import PractitionerDatabase, ProductDatabase
 
 # Load environment variables
 load_dotenv()
@@ -20,6 +20,7 @@ app = FastAPI(
 async def startup_event():
     """Initialize database on startup"""
     PractitionerDatabase.initialize_database()
+    ProductDatabase.initialize_database()
 
 # Configure CORS for React Native app
 app.add_middleware(
@@ -98,6 +99,74 @@ async def search_practitioners(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error searching practitioners: {str(e)}")
+
+# Product endpoints
+@app.get("/api/products", response_model=ProductResponse)
+async def get_products(
+    category: Optional[str] = Query(None, description="Filter by category"),
+    query: Optional[str] = Query(None, description="Search query"),
+    in_stock_only: Optional[bool] = Query(False, description="Show only in-stock products"),
+    limit: Optional[int] = Query(20, description="Limit number of results")
+):
+    """Get all products with optional filtering"""
+    try:
+        if category or query or in_stock_only:
+            products = ProductDatabase.search_products(category=category, query=query, in_stock_only=in_stock_only)
+        else:
+            products = ProductDatabase.get_all_products()
+        
+        # Apply limit
+        limited_products = products[:limit] if limit else products
+        
+        return ProductResponse(
+            products=limited_products,
+            total=len(products)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching products: {str(e)}")
+
+@app.get("/api/products/{product_id}", response_model=Product)
+async def get_product(product_id: int):
+    """Get a specific product by ID"""
+    try:
+        product = ProductDatabase.get_product_by_id(product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        return product
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching product: {str(e)}")
+
+@app.get("/api/products/search", response_model=ProductResponse)
+async def search_products(
+    q: str = Query(..., description="Search query"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+    in_stock_only: Optional[bool] = Query(False, description="Show only in-stock products"),
+    limit: Optional[int] = Query(20, description="Limit number of results")
+):
+    """Search products by name or description"""
+    try:
+        products = ProductDatabase.search_products(category=category, query=q, in_stock_only=in_stock_only)
+        
+        # Apply limit
+        limited_results = products[:limit] if limit else products
+        
+        return ProductResponse(
+            products=limited_results,
+            total=len(products)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error searching products: {str(e)}")
+
+@app.get("/api/categories", response_model=List[ProductCategory])
+async def get_categories():
+    """Get all product categories with counts"""
+    try:
+        categories = ProductDatabase.get_categories()
+        return categories
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching categories: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

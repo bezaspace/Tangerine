@@ -53,4 +53,57 @@ api.interceptors.response.use(
   }
 );
 
+// Product API functions
+import { Product, ProductResponse, ProductCategory } from '../types/product';
+
+export const productsApi = {
+  // Get all products
+  getAllProducts: async (params?: {
+    category?: string;
+    query?: string;
+    inStockOnly?: boolean;
+    limit?: number;
+  }): Promise<ProductResponse> => {
+    const response = await api.get('/api/products', { 
+      params: {
+        category: params?.category,
+        query: params?.query,
+        in_stock_only: params?.inStockOnly,
+        limit: params?.limit
+      }
+    });
+    return response.data;
+  },
+
+  // Get product by ID
+  getProductById: async (id: number): Promise<Product> => {
+    const response = await api.get(`/api/products/${id}`);
+    return response.data;
+  },
+
+  // Search products
+  searchProducts: async (
+    query: string, 
+    category?: string, 
+    inStockOnly?: boolean, 
+    limit?: number
+  ): Promise<ProductResponse> => {
+    const response = await api.get('/api/products/search', {
+      params: { 
+        q: query, 
+        category,
+        in_stock_only: inStockOnly,
+        limit 
+      }
+    });
+    return response.data;
+  },
+
+  // Get categories
+  getCategories: async (): Promise<ProductCategory[]> => {
+    const response = await api.get('/api/categories');
+    return response.data;
+  }
+};
+
 export default api;
